@@ -1,0 +1,47 @@
+#!/bin/bash
+
+usage() { echo "Usage: $0 device-id ... module" 1>&2; exit 1; }
+
+# handle arguments
+if [ "$#" -lt 2 ]; then
+  echo "illegal number of parameters" 1>&2
+  exit 1
+fi
+
+for last; do true; done
+module=${last}
+driver="/sys/bus/pci/drivers/${module}"
+
+if [ ! -d "${driver}" ]; then
+  echo "module not found" 1>&2
+  exit 1
+fi
+
+for i in $(seq 1 $(($# - 1))); do
+  if [ ! -d "/sys/bus/pci/devices/${!i}" ]; then
+    echo "device not found: ${!i}" 1>&2
+    exit 1
+  fi
+  
+  devices[${i}]=${!i}
+done
+
+# apply driver to devices
+for d in "${devices[@]}"; do
+  device="/sys/bus/pci/devices/${d}"
+  device_driver="${device}/driver"
+  vendorId=$(cat ${device}/vendor 2>/dev/null)
+  deviceId=$(cat ${device}/device 2>/dev/null)
+  
+  if [ -L "${device_driver}" ]; then
+    if [ "$(basename $(readlink "${device_driver}"))" == "${module}" ]; then
+      echo "${d} already bound to ${module}"
+      continue
+    fi
+    echo "${d}" > "${device_driver^}/unbind"
+  fi
+  
+  echo "${vendorId} ${deviceId}" > "${driver}/new_id" 
+  #echo "${d}" > "${driver}/bind"
+done
+

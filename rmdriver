@@ -1,0 +1,22 @@
+#!/bin/bash
+
+usage() { echo "Usage: $0 device-id ..." 1>&2; exit 1; }
+
+for i in $*; do
+  if [ ! -d "/sys/bus/pci/devices/${i}" ]; then
+    echo "device not found: ${i}" 1>&2
+    exit 1
+  fi
+done
+
+# remove driver from devices
+for d in "$*"; do
+  device="/sys/bus/pci/devices/${d}"
+
+  if [ -L "${device}/driver" ]; then
+    echo "${d}" > "${device}/driver/unbind"
+  else
+    echo "device not bound: ${d}" 1>&2
+  fi
+done
+

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+usage() { echo "Usage: $0 device-id ..." 1>&2; exit 1; }
+
+for i in $*; do
+  if [ ! -d "/sys/bus/pci/devices/${i}" ]; then
+    echo "device not found: ${i}" 1>&2
+    exit 1
+  fi
+done
+
+for i in $*; do
+  device="/sys/bus/pci/devices/${i}"
+  driver="${device}/driver"
+  if [ -L "${driver}" ]; then
+    echo $(basename $(readlink "${driver}"))
+  else
+    echo ""
+  fi
+done
